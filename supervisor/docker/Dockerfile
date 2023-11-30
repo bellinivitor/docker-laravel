@@ -30,9 +30,9 @@ RUN update-ca-certificates
 
 ## Create a first copy of the source code
 COPY . /app
+RUN chown -R www-data:www-data /app/storage
 
 ## Copy supervisor config
 COPY ./infra/docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
 ##start supervisor
 CMD ["/usr/bin/supervisord","-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
