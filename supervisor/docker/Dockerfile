@@ -1,38 +1,40 @@
-FROM php:8.2-fpm-alpine
+FROM php:8.5-fpm-alpine
 
-## Install libraries and reduce container size
-RUN apk --no-cache add  \
-    pcre-dev  \
-    libsodium-dev \
-    zlib-dev \
-    libpng-dev \
-    libzip-dev \
-    ${PHPIZE_DEPS} \
-    openrc \
-    supervisor \
-  && pecl install redis \
-  && docker-php-ext-enable opcache redis.so \
-  && apk del pcre-dev ${PHPIZE_DEPS}
+## Host user UID/GID, so files created in the volume get the right owner (relevant on Linux)
+ARG HOST_UID=1000
+ARG HOST_GID=1000
+
+## Supervisor + tools used by Composer
+RUN apk add --no-cache git unzip supervisor
+
+## Install PHP extensions (the installer resolves and removes build dependencies on its own)
+## On PHP 8.5 opcache is built in; on earlier versions add "opcache" to the list
+COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/
+RUN install-php-extensions \
+      bcmath \
+      gd \
+      intl \
+      pcntl \
+      pdo_pgsql \
+      redis \
+      zip
 
 ## Copy composer
-COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
-## Install postgresSQL
-RUN apk --no-cache --update --repository https://dl-cdn.alpinelinux.org/alpine/v$ALPINE_VERSION/main/ add postgresql-dev
-RUN docker-php-ext-configure pdo_pgsql
+## Match www-data with the host user
+RUN apk add --no-cache --virtual .user-deps shadow \
+  && groupmod -o -g ${HOST_GID} www-data \
+  && usermod -o -u ${HOST_UID} -g ${HOST_GID} www-data \
+  && apk del .user-deps
 
-## Install php dependencies
-RUN docker-php-ext-install pdo pdo_pgsql bcmath intl sodium zip gd
+WORKDIR /app
 
-## Curl certificate
-RUN wget https://curl.se/ca/cacert-2023-08-22.pem -O /usr/local/share/ca-certificates/cacert.crt
-RUN update-ca-certificates
-
-## Create a first copy of the source code
-COPY . /app
-RUN chown -R www-data:www-data /app/storage
+## Create a first copy of the source code (in dev the ./:/app volume overrides this copy)
+COPY --chown=www-data:www-data . /app
 
 ## Copy supervisor config
-COPY ./infra/docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-##start supervisor
-CMD ["/usr/bin/supervisord","-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+COPY ./docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+## Start supervisor (manages php-fpm, workers and the scheduler)
+CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
