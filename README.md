@@ -118,11 +118,13 @@ HOST_GID=1000
 docker compose up -d --build
 ```
 
-Execute os comandos como `www-data` para não criar arquivos com dono `root`:
+Os containers rodam como `www-data` por padrão, então os comandos já saem com o usuário certo, sem criar arquivos com dono `root`:
 
 ```bash
-docker compose exec -u www-data app php artisan migrate
+docker compose exec app php artisan migrate
 ```
+
+Para tarefas que precisam de `root` (instalar pacotes com `apk`, `chown`), use `-u root`.
 
 ---
 

@@ -32,3 +32,6 @@ WORKDIR /app
 
 ## Create a first copy of the source code (in dev the ./:/app volume overrides this copy)
 COPY --chown=www-data:www-data . /app
+
+## Run as www-data by default, so `docker compose exec` does not create root-owned files
+USER www-data

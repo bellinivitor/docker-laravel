@@ -36,5 +36,8 @@ COPY --chown=www-data:www-data . /app
 ## Copy supervisor config
 COPY ./docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
+## Run as www-data by default, so `docker compose exec` does not create root-owned files
+USER www-data
+
 ## Start supervisor (manages php-fpm, workers and the scheduler)
 CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
