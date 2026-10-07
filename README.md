@@ -160,3 +160,9 @@ Sugestão de arquitetura:
 >>> ├── docker-compose.yml
     └── vite.config.js
 ```
+
+## Apoie
+
+Se este projeto te ajudou, você pode me pagar um café ☕
+
+<a href="https://buymeacoffee.com/vitorbellini"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="40"></a>
